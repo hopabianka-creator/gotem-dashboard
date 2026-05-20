@@ -1,0 +1,9 @@
+{
+  "name": "gotem-dashboard",
+  "version": "1.0.0",
+  "description": "GOT'EM PM Dashboard — Shopify + Claude AI",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  }
+}

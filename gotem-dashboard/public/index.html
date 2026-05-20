@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOT'EM — PM Dashboard</title>
+<style>
+:root {
+  --bg: #0a0a0a; --s1: #111; --s2: #1a1a1a; --s3: #222;
+  --b1: #2a2a2a; --b2: #333; --b3: #444;
+  --t1: #f0f0f0; --t2: #999; --t3: #555;
+  --green: #c8f542; --green2: #a8d420; --green-dim: rgba(200,245,66,.12);
+  --red: #ff4d4d; --amber: #f5a623; --blue: #60a5fa; --purple: #a78bfa;
+  --r: 10px; --rs: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',system-ui,sans-serif;min-height:100vh;font-size:14px}
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:var(--s1);border-right:1px solid var(--b1);padding:24px 16px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{display:flex;flex-direction:column;min-height:100vh}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--b1);background:var(--s1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.content{padding:24px;flex:1}
+.logo{font-size:17px;font-weight:700;color:var(--green);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--b1);letter-spacing:-.5px}
+.logo span{display:block;font-size:11px;color:var(--t3);font-weight:400;margin-top:2px;letter-spacing:0}
+.nav-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);padding:4px 10px;margin-top:12px}
+.nav-item{padding:8px 10px;border-radius:var(--rs);font-size:13px;color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .12s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--s2);color:var(--t1)}
+.nav-item.active{background:var(--green);color:#000;font-weight:600}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-sep{height:1px;background:var(--b1);margin:10px 0}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.page-title{font-size:15px;font-weight:600}
+.status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);font-family:monospace}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--t3)}
+.dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot.err{background:var(--red)}
+.btn{padding:8px 14px;border-radius:var(--rs);border:1px solid var(--b2);background:var(--s2);color:var(--t1);font-size:12px;cursor:pointer;transition:all .12s;font-family:inherit}
+.btn:hover{background:var(--s3)}
+.btn-primary{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
+.btn-primary:hover{background:var(--green2)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:18px}
+.card-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.metric{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px}
+.metric-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.metric-value{font-size:24px;font-weight:700;line-height:1}
+.metric-sub{font-size:11px;color:var(--t2);margin-top:5px;font-family:monospace}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px}
+.bg{background:rgba(200,245,66,.15);color:var(--green)}
+.br{background:rgba(255,77,77,.15);color:var(--red)}
+.ba{background:rgba(245,166,35,.15);color:var(--amber)}
+.bp{background:rgba(167,139,250,.15);color:var(--purple)}
+.bk{background:var(--s2);color:var(--t2);border:1px solid var(--b1)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--b1)}
+td{padding:8px 10px;border-bottom:1px solid var(--b1);color:var(--t1);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--s2)}
+.pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill-traffic{background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.3)}
+.pill-profit{background:rgba(200,245,66,.12);color:var(--green);border:1px solid rgba(200,245,66,.25)}
+.pill-style{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.25)}
+.pill-clearance{background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.25)}
+.pill-hold{background:var(--s2);color:var(--t2);border:1px solid var(--b2)}
+.bar-wrap{height:5px;background:var(--s3);border-radius:99px;overflow:hidden;width:60px;display:inline-block;vertical-align:middle}
+.bar-fill{height:100%;border-radius:99px;background:var(--green)}
+/* AI CHAT */
+.ai-wrap{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 120px)}
+.ai-header{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px}
+.ai-badge{background:var(--green);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px}
+.ai-msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+.msg{display:flex;gap:10px;align-items:flex-start}
+.avatar{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.avatar.ai{background:var(--green);color:#000}
+.avatar.user{background:var(--s3);color:var(--t2);border:1px solid var(--b2)}
+.msg-body{flex:1}
+.msg-name{font-size:10px;color:var(--t3);margin-bottom:4px;font-family:monospace}
+.msg-text{font-size:13px;line-height:1.65;color:var(--t1);background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 13px}
+.msg-text.ai{border-color:rgba(200,245,66,.2)}
+.quick-btns{padding:0 18px 12px;display:flex;gap:6px;flex-wrap:wrap}
+.qbtn{font-size:11px;padding:5px 11px;border-radius:99px;border:1px solid var(--b2);background:none;color:var(--t2);cursor:pointer;transition:all .12s;font-family:inherit}
+.qbtn:hover{border-color:var(--green);color:var(--green)}
+.ai-input-row{padding:12px 18px;border-top:1px solid var(--b1);display:flex;gap:8px}
+.ai-input{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:9px 13px;color:var(--t1);font-size:13px;font-family:inherit;outline:none}
+.ai-input:focus{border-color:var(--green)}
+.ai-input::placeholder{color:var(--t3)}
+.ai-send{background:var(--green);color:#000;border:none;border-radius:var(--rs);padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s;white-space:nowrap}
+.ai-send:hover{background:var(--green2)}
+.ai-send:disabled{opacity:.4;cursor:default}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:14px;padding:28px;max-width:480px;width:90%}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--t2);margin-bottom:20px;line-height:1.6}
+.step{display:flex;gap:10px;margin-bottom:14px;align-items:flex-start}
+.step-n{width:22px;height:22px;border-radius:50%;background:var(--green);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-t{font-size:13px;color:var(--t2);line-height:1.6}
+.step-t strong{color:var(--t1)}
+.step-t code{background:var(--s2);border:1px solid var(--b2);border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;color:var(--green)}
+.field-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;margin-top:16px}
+.field-input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:10px 13px;color:var(--t1);font-size:13px;font-family:monospace;outline:none}
+.field-input:focus{border-color:var(--green)}
+.field-input::placeholder{color:var(--t3)}
+.modal-actions{display:flex;gap:8px;margin-top:20px}
+.err-box{background:rgba(255,77,77,.1);border:1px solid rgba(255,77,77,.3);border-radius:var(--rs);padding:9px 13px;font-size:12px;color:var(--red);margin-top:10px;display:none}
+.hidden{display:none!important}
+.loading{display:flex;align-items:center;gap:8px;color:var(--t2);font-size:13px;padding:4px 0}
+.spinner{width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:48px 20px;color:var(--t3)}
+.empty-title{font-size:15px;font-weight:600;color:var(--t2);margin-bottom:6px}
+.alert{padding:10px 14px;border-radius:var(--rs);font-size:12px;margin-bottom:12px;line-height:1.5}
+.alert-warn{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:var(--amber)}
+.alert-ok{background:rgba(200,245,66,.08);border:1px solid rgba(200,245,66,.2);color:var(--green)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
+@media(max-width:768px){.shell{grid-template-columns:1fr}.sidebar{display:none}.grid4{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">GOT'EM <span>PM Dashboard v1.0</span></div>
+
+  <div class="nav-label">Raporty</div>
+  <button class="nav-item active" onclick="nav('overview',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Przegląd
+  </button>
+  <button class="nav-item" onclick="nav('products',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Produkty
+  </button>
+  <button class="nav-item" onclick="nav('orders',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Zamówienia
+  </button>
+  <button class="nav-item" onclick="nav('inventory',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>Magazyn
+  </button>
+  <button class="nav-item" onclick="nav('segmentation',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Segmentacja
+  </button>
+
+  <div class="nav-sep"></div>
+  <div class="nav-label">AI</div>
+  <button class="nav-item" onclick="nav('ai',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>Analiza AI
+  </button>
+
+  <div class="nav-sep"></div>
+  <button class="nav-item" onclick="openModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Połącz Shopify
+  </button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="page-title" id="pageTitle">Przegląd</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="status"><div class="dot" id="statusDot"></div><span id="statusText">Niepołączono</span></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal()" id="connectBtn">Połącz Shopify</button>
+      <button class="btn btn-sm hidden" id="refreshBtn" onclick="loadAll()">↻ Odśwież</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-title">Połącz z Shopify</div>
+    <div class="modal-sub">Podaj adres swojego backendu na Vercel oraz domenę sklepu. Token jest bezpieczny — nigdy nie trafia do przeglądarki.</div>
+
+    <div class="step"><div class="step-n">1</div><div class="step-t">Wejdź na <strong>vercel.com</strong> → Twój projekt → <strong>Settings → Environment Variables</strong><br>Dodaj: <code>SHOPIFY_SHOP</code> = <em>gotem.myshopify.com</em> i <code>SHOPIFY_TOKEN</code> = <em>shpat_xxx</em></div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-t">W Shopify: <strong>Settings → Apps → Develop apps → Create app</strong><br>Scopes: <code>read_products</code> <code>read_orders</code> <code>read_inventory</code> → Install → skopiuj token</div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-t">Wklej URL swojego projektu Vercel poniżej (np. <code>https://gotem-dashboard.vercel.app</code>)</div></div>
+
+    <div class="field-label">URL backendu Vercel</div>
+    <input class="field-input" id="backendUrl" placeholder="https://gotem-dashboard.vercel.app">
+
+    <div class="field-label">Domena sklepu (tylko dla weryfikacji)</div>
+    <input class="field-input" id="shopDomain" placeholder="gotem.myshopify.com">
+
+    <div class="err-box" id="errBox"></div>
+    <div class="modal-actions">
+      <button class="btn" style="flex:1" onclick="closeModal()">Anuluj</button>
+      <button class="btn btn-primary" style="flex:2" id="connectConfirmBtn" onclick="connect()">Połącz i pobierz dane</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+let BASE_URL = '';
+let connected = false;
+let allProducts = [], allOrders = [];
+let aiMessages = [];
+let dataCtx = '';
+let currentPage = 'overview';
+
+// ── NAVIGATION ──────────────────────────────────────────────
+function nav(page, btn) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const titles = {overview:'Przegląd',products:'Produkty',orders:'Zamówienia',inventory:'Magazyn',segmentation:'Segmentacja',ai:'Analiza AI'};
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  render();
+}
+
+// ── CONNECT ──────────────────────────────────────────────────
+function openModal(){ document.getElementById('modal').classList.remove('hidden'); }
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
+
+async function connect() {
+  const url = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
+  const domain = document.getElementById('shopDomain').value.trim();
+  const errEl = document.getElementById('errBox');
+  const btn = document.getElementById('connectConfirmBtn');
+  if (!url) { showErr('Wklej URL backendu Vercel'); return; }
+  errEl.style.display = 'none';
+  btn.textContent = 'Łączenie...'; btn.disabled = true;
+  BASE_URL = url;
+  try {
+    await loadAll();
+    document.getElementById('statusDot').classList.add('ok');
+    document.getElementById('statusText').textContent = domain || 'Połączono';
+    document.getElementById('connectBtn').classList.add('hidden');
+    document.getElementById('refreshBtn').classList.remove('hidden');
+    closeModal();
+  } catch(e) {
+    showErr('Błąd: ' + e.message + '. Sprawdź URL backendu i czy Vercel jest wdrożony.');
+    btn.textContent = 'Połącz i pobierz dane'; btn.disabled = false;
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('errBox');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function shopifyFetch(endpoint, params = '') {
+  const res = await fetch(`${BASE_URL}/api/shopify?endpoint=${endpoint}${params}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadAll() {
+  const [prodData, ordData] = await Promise.all([
+    shopifyFetch('products', '&limit=250'),
+    shopifyFetch('orders', '&limit=250&status=any'),
+  ]);
+  allProducts = prodData.products || [];
+  allOrders = ordData.orders || [];
+  connected = true;
+  buildCtx();
+  render();
+}
+
+// ── DATA HELPERS ─────────────────────────────────────────────
+function fmtPLN(v){ return Math.round(parseFloat(v)||0).toLocaleString('pl-PL') + ' zł'; }
+function soldQty(pid){ let q=0; allOrders.forEach(o=>(o.line_items||[]).forEach(i=>{ if(i.product_id===pid) q+=i.quantity; })); return q; }
+function totalStock(p){ return (p.variants||[]).reduce((s,v)=>s+(v.inventory_quantity||0),0); }
+function rev30(){ const c=Date.now()-30*86400000; return allOrders.filter(o=>new Date(o.created_at)>c&&o.financial_status!=='refunded').reduce((s,o)=>s+parseFloat(o.total_price||0),0); }
+function orders30(){ return allOrders.filter(o=>Date.now()-new Date(o.created_at)<30*86400000); }
+
+// ── SEGMENTATION ─────────────────────────────────────────────
+function segmentProduct(p) {
+  const sold = soldQty(p.id);
+  const stock = totalStock(p);
+  const rev = allOrders.reduce((s,o)=>{ (o.line_items||[]).forEach(i=>{ if(i.product_id===p.id) s+=parseFloat(i.price||0)*i.quantity; }); return s; },0);
+  const tl = p.title.toLowerCase();
+  const vendor = (p.vendor||'').toLowerCase();
+
+  const isWinter = ['ugg tazz','lowmel','classic mini','classic micro','moon boot','emu stinger','kurtka','śniegowce'].some(w=>tl.includes(w));
+  const isSummer = ['klapki','mule','sandał','slipper','goldenstar','goldenglow','disquette','baletki','woven stones','dreamer','blizzard'].some(w=>tl.includes(w)) && !['new balance','adidas','yeezy','nike'].includes(vendor);
+
+  if (isWinter) return {seg:'HOLD', reason:'Zimowy — wróć we wrześniu'};
+  if (sold===0 && stock===0) return null;
+
+  if (isSummer) {
+    if (rev >= 15000 && stock > 3) return {seg:'PROFIT', reason:'Letni hero z udowodnionym popytem'};
+    if (rev >= 3000 || sold >= 4) return {seg:'STYLE', reason:'Letni style — storytelling'};
+    if (stock > 5) return {seg:'CLEARANCE', reason:'Stock bez sprzedaży — push lub outlet'};
+    return null;
+  }
+
+  if (rev >= 40000) return {seg:'TRAFFIC', reason:'Hype driver — wysoki obrót, przyciąga ruch'};
+  if (rev >= 15000 && sold > 10) return {seg:'PROFIT', reason:'Stabilna rotacja, dobra marża'};
+  if (['naked wolfe','mc2','maison mihara','mmC studio'].some(b=>vendor.includes(b))) return {seg:'STYLE', reason:'Premium/style — pokazowy'};
+  if (stock > 20 && rev < 5000) return {seg:'CLEARANCE', reason:'Duży stock, słaba sprzedaż'};
+  if (rev >= 3000) return {seg:'PROFIT', reason:'Stabilna sprzedaż'};
+  return null;
+}
+
+function segColor(seg){ return {TRAFFIC:'pill-traffic',PROFIT:'pill-profit',STYLE:'pill-style',CLEARANCE:'pill-clearance',HOLD:'pill-hold'}[seg]||'pill-hold'; }
+function kanał(seg){ return {TRAFFIC:'perfo + SM',PROFIT:'perfo',STYLE:'SM + newsletter',CLEARANCE:'SM + newsletter',HOLD:'—'}[seg]||'—'; }
+function zachowanie(seg){ return {
+  TRAFFIC:'Utrzymuj always-on w perfo. Rotuj content angles. Nie przerywaj.',
+  PROFIT:'Skaluj perfo przy dobrym ROAS. Dokupuj stock gdy <10 szt.',
+  STYLE:'1–2 rolki miesięcznie. Storytelling, styling, UGC. Cross-sell przy hero.',
+  CLEARANCE:'Akcja -10–20% lub bundle. Deadline 6 tyg. Potem outlet.',
+  HOLD:'Nic nie rób. Wróć z kampanią back-to-fall we wrześniu.',
+}[seg]||''; }
+
+// ── CONTEXT FOR AI ───────────────────────────────────────────
+function buildCtx() {
+  const r30 = rev30(); const o30 = orders30();
+  const aov = o30.length ? r30/o30.length : 0;
+  const segs = allProducts.map(p=>({p, s:segmentProduct(p)})).filter(x=>x.s);
+  const byType = {};
+  segs.forEach(({p,s})=>{ byType[s.seg]=(byType[s.seg]||[]); byType[s.seg].push(p.title); });
+
+  dataCtx = `Dane sklepu GOT'EM (${new Date().toLocaleDateString('pl-PL')}):
+- Produktów: ${allProducts.length}, zamówień: ${allOrders.length}
+- Przychód 30 dni: ${Math.round(r30).toLocaleString()} zł
+- Zamówienia 30 dni: ${o30.length}, AOV: ${Math.round(aov)} zł
+- TRAFFIC (${(byType.TRAFFIC||[]).length} SKU): ${(byType.TRAFFIC||[]).slice(0,5).join(', ')}
+- PROFIT (${(byType.PROFIT||[]).length} SKU): ${(byType.PROFIT||[]).slice(0,5).join(', ')}
+- STYLE (${(byType.STYLE||[]).length} SKU): ${(byType.STYLE||[]).slice(0,5).join(', ')}
+- CLEARANCE (${(byType.CLEARANCE||[]).length} SKU): ${(byType.CLEARANCE||[]).slice(0,5).join(', ')}
+- HOLD (${(byType.HOLD||[]).length} SKU): zimowe — wróć we wrześniu`;
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('content');
+  if (!connected && currentPage !== 'ai') {
+    el.innerHTML = `<div class="empty"><div class="empty-title">Połącz sklep Shopify</div><p style="font-size:13px;color:var(--t3);margin:8px 0 20px">Kliknij "Połącz Shopify" w prawym górnym rogu</p><button class="btn btn-primary" onclick="openModal()">Połącz Shopify</button></div>`;
+    return;
+  }
+  if (currentPage==='overview') renderOverview(el);
+  else if (currentPage==='products') renderProducts(el);
+  else if (currentPage==='orders') renderOrders(el);
+  else if (currentPage==='inventory') renderInventory(el);
+  else if (currentPage==='segmentation') renderSegmentation(el);
+  else if (currentPage==='ai') renderAI(el);
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────
+function renderOverview(el) {
+  const r = rev30(); const o = orders30(); const aov = o.length?r/o.length:0;
+  const lowStock = allProducts.filter(p=>totalStock(p)<3&&totalStock(p)>=0).length;
+  const segs = allProducts.map(p=>({p,s:segmentProduct(p)})).filter(x=>x.s);
+  const heroes = segs.filter(x=>x.s.seg==='TRAFFIC'||x.s.seg==='PROFIT').sort((a,b)=>soldQty(b.p.id)-soldQty(a.p.id)).slice(0,5);
+
+  el.innerHTML = `
+<div class="grid4">
+  <div class="metric"><div class="metric-label">Przychód 30 dni</div><div class="metric-value">${fmtPLN(r)}</div></div>
+  <div class="metric"><div class="metric-label">Zamówienia 30 dni</div><div class="metric-value">${o.length}</div></div>
+  <div class="metric"><div class="metric-label">AOV</div><div class="metric-value">${fmtPLN(aov)}</div><div class="metric-sub">cel: 800–1200 zł</div></div>
+  <div class="metric"><div class="metric-label">Low stock (&lt;3 szt.)</div><div class="metric-value" style="color:${lowStock>10?'var(--red)':'var(--t1)'}">${lowStock}</div></div>
+</div>
+<div class="grid2">
+  <div class="card">
+    <div class="card-title">Top produkty (sprzedane sztuki)</div>
+    ${heroes.map((x,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1);${i===heroes.length-1?'border:none':''}">
+      <div style="font-size:11px;color:var(--t3);min-width:16px">${i+1}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.p.title}</div><div style="font-size:10px;color:var(--t3)">${x.p.vendor}</div></div>
+      <span class="pill ${segColor(x.s.seg)}">${x.s.seg}</span>
+      <div style="font-size:13px;font-weight:600;color:var(--green)">${soldQty(x.p.id)} szt.</div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <div class="card-title">Segmentacja asortymentu</div>
+    ${['TRAFFIC','PROFIT','STYLE','CLEARANCE','HOLD'].map(seg=>{
+      const cnt = segs.filter(x=>x.s.seg===seg).length;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--b1)">
+        <span class="pill ${segColor(seg)}" style="min-width:80px;text-align:center">${seg}</span>
+        <div style="flex:1;height:4px;background:var(--s3);border-radius:99px;overflow:hidden"><div style="width:${Math.min(100,cnt*4)}%;height:100%;background:var(--green);border-radius:99px"></div></div>
+        <div style="font-size:12px;color:var(--t2);min-width:40px;text-align:right">${cnt} SKU</div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>
+<div class="card">
+  <div class="card-title">Ostatnie zamówienia</div>
+  <table><thead><tr><th>#</th><th>Klient</th><th>Wartość</th><th>Data</th><th>Status</th></tr></thead>
+  <tbody>${allOrders.slice(0,8).map(o=>{
+    const name = o.customer ? `${o.customer.first_name||''} ${o.customer.last_name||''}`.trim()||'Gość' : 'Gość';
+    const d = new Date(o.created_at).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'});
+    const fin = o.financial_status==='paid'?`<span class="badge bg">Opłacone</span>`:o.financial_status==='refunded'?`<span class="badge br">Zwrot</span>`:`<span class="badge ba">${o.financial_status||'—'}</span>`;
+    return `<tr><td style="font-family:monospace;font-size:11px;color:var(--t3)">#${o.order_number}</td><td>${name}</td><td style="font-weight:600">${fmtPLN(o.total_price)}</td><td style="font-size:11px;color:var(--t2)">${d}</td><td>${fin}</td></tr>`;
+  }).join('')}</tbody></table>
+</div>`;
+}
+
+// ── PRODUCTS ──────────────────────────────────────────────────
+function renderProducts(el) {
+  const segs = allProducts.map(p=>({p,s:segmentProduct(p),sold:soldQty(p.id),stock:totalStock(p)})).filter(x=>x.s).sort((a,b)=>b.sold-a.sold);
+  el.innerHTML = `
+<div class="card">
+  <div class="card-title">Produkty z segmentacją i rekomendacją</div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <input id="pSearch" placeholder="Szukaj..." style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:7px 12px;color:var(--t1);font-size:12px;flex:1;min-width:160px;outline:none" oninput="filterProducts()">
+    <select id="pSeg" style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:7px 12px;color:var(--t1);font-size:12px;outline:none" onchange="filterProducts()">
+      <option value="">Wszystkie typy</option>
+      ${['TRAFFIC','PROFIT','STYLE','CLEARANCE','HOLD'].map(s=>`<option value="${s}">${s}</option>`).join('')}
+    </select>
+  </div>
+  <div style="overflow-x:auto"><table id="prodTable">
+    <thead><tr><th>Produkt</th><th>Marka</th><th>Typ</th><th>Kanał</th><th>Sprzedane</th><th>Stock</th><th>Zalecane działanie</th></tr></thead>
+    <tbody id="prodBody">${renderProductRows(segs)}</tbody>
+  </table></div>
+</div>`;
+}
+
+function renderProductRows(segs) {
+  if (!segs.length) return `<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:24px">Brak produktów</td></tr>`;
+  return segs.map(({p,s,sold,stock})=>`<tr>
+    <td style="font-weight:500;max-width:200px">${p.title}</td>
+    <td style="font-size:11px;color:var(--t2)">${p.vendor||'—'}</td>
+    <td><span class="pill ${segColor(s.seg)}">${s.seg}</span></td>
+    <td style="font-size:11px;color:var(--t2)">${kanał(s.seg)}</td>
+    <td style="font-weight:600;color:var(--green)">${sold}</td>
+    <td style="color:${stock<=2?'var(--red)':stock<=8?'var(--amber)':'var(--t1)'};font-weight:${stock<=5?600:400}">${stock}</td>
+    <td style="font-size:11px;color:var(--t2);max-width:220px">${zachowanie(s.seg)}</td>
+  </tr>`).join('');
+}
+
+function filterProducts() {
+  const q = (document.getElementById('pSearch')?.value||'').toLowerCase();
+  const seg = document.getElementById('pSeg')?.value||'';
+  const segs = allProducts.map(p=>({p,s:segmentProduct(p),sold:soldQty(p.id),stock:totalStock(p)})).filter(x=>x.s)
+    .filter(x=>(!q||x.p.title.toLowerCase().includes(q))&&(!seg||x.s.seg===seg))
+    .sort((a,b)=>b.sold-a.sold);
+  const body = document.getElementById('prodBody');
+  if (body) body.innerHTML = renderProductRows(segs);
+}
+
+// ── ORDERS ────────────────────────────────────────────────────
+function renderOrders(el) {
+  const o30 = orders30(); const r = rev30(); const aov = o30.length?r/o30.length:0;
+  el.innerHTML = `
+<div class="grid3">
+  <div class="metric"><div class="metric-label">Zamówienia 30 dni</div><div class="metric-value">${o30.length}</div></div>
+  <div class="metric"><div class="metric-label">Przychód 30 dni</div><div class="metric-value">${fmtPLN(r)}</div></div>
+  <div class="metric"><div class="metric-label">AOV</div><div class="metric-value">${fmtPLN(aov)}</div><div class="metric-sub">cel: 800–1200 zł</div></div>
+</div>
+<div class="card">
+  <div class="card-title">Historia zamówień</div>
+  <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Klient</th><th>Produkty</th><th>Wartość</th><th>Data</th><th>Płatność</th><th>Wysyłka</th></tr></thead>
+  <tbody>${allOrders.slice(0,40).map(o=>{
+    const items=(o.line_items||[]).map(i=>i.name).join(', ');
+    const short=items.length>45?items.slice(0,45)+'…':items;
+    const name=o.customer?`${o.customer.first_name||''} ${o.customer.last_name||''}`.trim()||'Gość':'Gość';
+    const d=new Date(o.created_at).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const fin=o.financial_status==='paid'?'<span class="badge bg">Opłacone</span>':o.financial_status==='refunded'?'<span class="badge br">Zwrot</span>':'<span class="badge ba">—</span>';
+    const ful=o.fulfillment_status==='fulfilled'?'<span class="badge bg">Wysłane</span>':o.fulfillment_status?`<span class="badge ba">${o.fulfillment_status}</span>`:'<span class="badge bk">Nowe</span>';
+    return `<tr><td style="font-family:monospace;font-size:11px;color:var(--t3)">#${o.order_number}</td><td style="font-size:12px">${name}</td><td style="font-size:11px;color:var(--t2);max-width:180px">${short||'—'}</td><td style="font-weight:600">${fmtPLN(o.total_price)}</td><td style="font-size:11px;color:var(--t2)">${d}</td><td>${fin}</td><td>${ful}</td></tr>`;
+  }).join('')}</tbody></table></div>
+</div>`;
+}
+
+// ── INVENTORY ─────────────────────────────────────────────────
+function renderInventory(el) {
+  const low = []; const ok = [];
+  allProducts.forEach(p=>{
+    const s=totalStock(p);
+    if(s<3) low.push({p,s}); else ok.push({p,s});
+  });
+  low.sort((a,b)=>a.s-b.s);
+  el.innerHTML = `
+<div class="grid3">
+  <div class="metric"><div class="metric-label">Łącznie produktów</div><div class="metric-value">${allProducts.length}</div></div>
+  <div class="metric"><div class="metric-label">Low stock (&lt;3 szt.)</div><div class="metric-value" style="color:var(--amber)">${low.length}</div></div>
+  <div class="metric"><div class="metric-label">Wyprzedane (0 szt.)</div><div class="metric-value" style="color:var(--red)">${low.filter(x=>x.s===0).length}</div></div>
+</div>
+${low.length?`<div class="alert alert-warn">⚠ ${low.filter(x=>x.s===0).length} produktów wyprzedanych · ${low.filter(x=>x.s>0&&x.s<3).length} poniżej 3 szt. — sprawdź reordery</div>`:''}
+<div class="card">
+  <div class="card-title">Wymagają uwagi — low stock</div>
+  <table><thead><tr><th>Produkt</th><th>Marka</th><th>Stock</th><th>Typ</th><th>Priorytet</th></tr></thead>
+  <tbody>${low.slice(0,30).map(({p,s})=>{
+    const seg=segmentProduct(p);
+    const pri=s===0&&seg?.seg==='TRAFFIC'?'<span class="badge br">Krytyczny</span>':s===0?'<span class="badge ba">Wyprzedany</span>':'<span class="badge ba">Uzupełnij</span>';
+    return `<tr><td style="font-weight:500">${p.title}</td><td style="font-size:11px;color:var(--t2)">${p.vendor||'—'}</td><td style="color:${s===0?'var(--red)':'var(--amber)'};font-weight:600">${s}</td><td>${seg?`<span class="pill ${segColor(seg.seg)}">${seg.seg}</span>`:'—'}</td><td>${pri}</td></tr>`;
+  }).join('')}</tbody></table>
+</div>`;
+}
+
+// ── SEGMENTATION PAGE ─────────────────────────────────────────
+function renderSegmentation(el) {
+  const segs = allProducts.map(p=>({p,s:segmentProduct(p),sold:soldQty(p.id)})).filter(x=>x.s);
+  const by = {};
+  segs.forEach(x=>{ by[x.s.seg]=by[x.s.seg]||[]; by[x.s.seg].push(x); });
+
+  const desc = {
+    TRAFFIC:{col:'var(--amber)',bg:'rgba(245,166,35,.08)',border:'rgba(245,166,35,.25)',txt:'Hype, duże wolumeny. Przyciągają ruch. Kanał: perfo + SM.'},
+    PROFIT:{col:'var(--green)',bg:'rgba(200,245,66,.06)',border:'rgba(200,245,66,.2)',txt:'Pewna marża, stabilna rotacja. Skaluj perfo. Dokupuj stock gdy <10 szt.'},
+    STYLE:{col:'var(--purple)',bg:'rgba(167,139,250,.06)',border:'rgba(167,139,250,.2)',txt:'Pokazowe, storytelling. 1–2 rolki/miesiąc. Cross-sell przy hero.'},
+    CLEARANCE:{col:'var(--red)',bg:'rgba(255,77,77,.06)',border:'rgba(255,77,77,.2)',txt:'Słaba rotacja lub nadmiar stocku. Akcja cenowa, bundle lub outlet.'},
+    HOLD:{col:'var(--t3)',bg:'var(--s2)',border:'var(--b2)',txt:'Zimowe, poza sezonem. Nie ruszaj. Wróć z back-to-fall we wrześniu.'},
+  };
+
+  el.innerHTML = ['TRAFFIC','PROFIT','STYLE','CLEARANCE','HOLD'].map(seg=>{
+    const items = (by[seg]||[]).sort((a,b)=>b.sold-a.sold);
+    const d = desc[seg];
+    return `<div style="background:${d.bg};border:1px solid ${d.border};border-radius:var(--r);padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span class="pill ${segColor(seg)}">${seg}</span>
+        <span style="font-size:12px;color:var(--t2)">${items.length} SKU</span>
+        <span style="font-size:12px;color:${d.col}">${kanał(seg)}</span>
+        <span style="font-size:12px;color:var(--t2);margin-left:auto">${d.txt}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${items.slice(0,20).map(x=>`
+        <span style="font-size:11px;padding:3px 9px;background:var(--s1);border:1px solid var(--b2);border-radius:99px;color:var(--t2)" title="${x.s.reason}">${x.p.title.slice(0,35)}${x.p.title.length>35?'…':''}</span>`).join('')}
+        ${items.length>20?`<span style="font-size:11px;padding:3px 9px;color:var(--t3)">+${items.length-20} więcej</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── AI CHAT ───────────────────────────────────────────────────
+function renderAI(el) {
+  el.innerHTML = `
+<div class="ai-wrap">
+  <div class="ai-header">
+    <div class="ai-badge">AI</div>
+    <div><div style="font-size:14px;font-weight:600">Analityk produktowy GOT'EM</div>
+    <div style="font-size:11px;color:var(--t2)">${connected?`Połączono — widzę ${allProducts.length} produktów i ${allOrders.length} zamówień`:'Połącz Shopify żeby AI analizowało Twoje dane'}</div></div>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="msg"><div class="avatar ai">AI</div><div class="msg-body">
+      <div class="msg-name">Analityk GOT'EM</div>
+      <div class="msg-text ai">${connected?`Cześć! Mam dostęp do Twoich danych: <strong>${allProducts.length} produktów</strong> i <strong>${allOrders.length} zamówień</strong>. Mogę analizować segmentację, zwroty, rotację stocku, rekomendować działania i odpowiadać na pytania PM-a. Zadaj pytanie lub wybierz gotową analizę poniżej.`:'Cześć! Połącz sklep Shopify żebym mogła analizować Twoje rzeczywiste dane. Mogę też odpowiadać na ogólne pytania PM-a dla GOT\'EM.'}</div>
+    </div></div>
+  </div>
+  <div class="quick-btns">
+    <button class="qbtn" onclick="quickAsk('Co powinienem komunikować w tym tygodniu? Pokaż top 5 produktów z rekomendacją kanału.')">Weekly heroes</button>
+    <button class="qbtn" onclick="quickAsk('Które produkty TRAFFIC mają niski stock i wymagają pilnego reorderu?')">Pilne reordery</button>
+    <button class="qbtn" onclick="quickAsk('Przeanalizuj produkty CLEARANCE — co wyprzedać natychmiast, co dać do outletu?')">Plan clearance</button>
+    <button class="qbtn" onclick="quickAsk('Jakie są trendy przychodów? Czy AOV rośnie czy spada i co zrobić?')">Trend przychodów</button>
+    <button class="qbtn" onclick="quickAsk('Zbuduj mi hero brief na ten tydzień — 3-5 produktów z angulami komunikacyjnymi.')">Hero brief</button>
+    <button class="qbtn" onclick="quickAsk('Które marki mają najlepszą efektywność (przychód/SKU)? Gdzie warto inwestować?')">Analiza marek</button>
+  </div>
+  <div class="ai-input-row">
+    <input class="ai-input" id="aiIn" placeholder="Zapytaj o produkty, segmentację, zwroty, strategie…" onkeydown="if(event.key==='Enter')sendAI()">
+    <button class="ai-send" id="aiBtn" onclick="sendAI()">Analizuj →</button>
+  </div>
+</div>`;
+}
+
+function quickAsk(q) {
+  const inp = document.getElementById('aiIn');
+  if (inp) inp.value = q;
+  sendAI();
+}
+
+async function sendAI() {
+  const inp = document.getElementById('aiIn');
+  const btn = document.getElementById('aiBtn');
+  const msgs = document.getElementById('aiMsgs');
+  if (!inp||!msgs) return;
+  const q = inp.value.trim(); if (!q) return;
+  inp.value=''; btn.disabled=true;
+
+  msgs.innerHTML += `<div class="msg"><div class="avatar user">Ty</div><div class="msg-body"><div class="msg-name">Ty</div><div class="msg-text">${q}</div></div></div>`;
+  msgs.innerHTML += `<div class="msg" id="aiTyping"><div class="avatar ai">AI</div><div class="msg-body"><div class="msg-name">Analityk GOT'EM</div><div class="msg-text ai"><div class="loading"><div class="spinner"></div>Analizuję…</div></div></div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  aiMessages.push({role:'user', content: q});
+
+  try {
+    const sys = `Jesteś ekspertem product managera dla GOT'EM — polskiego premium sklepu z limitowanymi butami i odzieżą (marki: New Balance, UGG, Adidas/Yeezy, Inuikii, Naked Wolfe, MMC Studio, MC2 Saint Barth).
+
+Typy produktów:
+- TRAFFIC: hype, duże wolumeny, przyciągają ruch, kanał: perfo + SM
+- PROFIT: pewna marża, stabilna rotacja, kanał: perfo
+- STYLE: pokazowe, storytelling, kanał: SM + newsletter
+- CLEARANCE: słaba rotacja lub nadmiar stocku, wymagają akcji cenowej
+- HOLD: zimowe, poza sezonem, wróć we wrześniu
+
+${dataCtx ? `AKTUALNE DANE SKLEPU:\n${dataCtx}` : 'Brak danych sklepu — odpowiadaj na podstawie wiedzy o GOT\'EM.'}
+
+Odpowiadaj po polsku. Bądź konkretna — podawaj nazwy produktów, liczby, rekomendacje działań. Format: krótkie akapity bez gwiazdek markdown.`;
+
+    const res = await fetch(CLAUDE_API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:1000, system:sys, messages:aiMessages})
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Nie udało się przetworzyć odpowiedzi.';
+    aiMessages.push({role:'assistant', content:reply});
+
+    const typing = document.getElementById('aiTyping');
+    if (typing) typing.outerHTML = `<div class="msg"><div class="avatar ai">AI</div><div class="msg-body"><div class="msg-name">Analityk GOT'EM</div><div class="msg-text ai">${reply.replace(/\n/g,'<br>')}</div></div></div>`;
+  } catch(e) {
+    const typing = document.getElementById('aiTyping');
+    if (typing) typing.outerHTML = `<div class="msg"><div class="avatar ai">AI</div><div class="msg-body"><div class="msg-name">Analityk GOT'EM</div><div class="msg-text ai" style="color:var(--red)">Błąd połączenia z AI. Sprawdź sieć.</div></div></div>`;
+  }
+  btn.disabled=false;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// INIT
+render();
+</script>
+</body>
+</html>
